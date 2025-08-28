@@ -1,0 +1,31 @@
+{
+  "rules": [
+    "Always use TypeScript with strict mode; prefer interfaces over types for object shapes.",
+    "Use functional React components with hooks; avoid class components.",
+    "Use React Navigation (stack/tabs). Initialize NavigationContainer in App.tsx.",
+    "Wrap the app with SafeAreaProvider and use SafeAreaView on screens.",
+    "Optimize performance: memoize components, use useMemo/useCallback, lazy-load non-critical screens.",
+    "Use react-query (or a simple fetch wrapper with SWR-like caching) for data fetching and caching.",
+    "Validate external data with Zod before using it in UI/state.",
+    "Support dark mode via useColorScheme and keep layouts responsive with useWindowDimensions.",
+    "Follow accessibility best practices (labels, roles, hitSlop, dynamic font scaling).",
+    "Use Expo capabilities where possible (Notifications, Updates/OTA, SecureStore).",
+    "Organize code under src/: screens/, components/, services/, hooks/, utils/, types/",
+    "Keep env and API keys in .env; never commit secrets.",
+    "Prefer named exports; PascalCase for components, camelCase for vars/functions.",
+    "Handle errors with early returns and centralized logging."
+  ],
+  "paths": {
+    "screens": "src/screens",
+    "components": "src/components",
+    "services": "src/services",
+    "hooks": "src/hooks",
+    "utils": "src/utils",
+    "types": "src/types"
+  },
+  "settings": {
+    "language": "typescript",
+    "framework": "react-native",
+    "packageManager": "npm"
+  }
+}
