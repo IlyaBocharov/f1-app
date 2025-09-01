@@ -19,6 +19,10 @@ import { RootStackParamList } from '../types';
 type ArticleWebViewRouteProp = RouteProp<RootStackParamList, 'ArticleWebView'>;
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
+// URL guard helpers
+const isHttpUrl = (u: string): boolean => /^https?:\/\//i.test(u);
+const isDisallowedScheme = (u: string): boolean => /^(about|data|blob|file|javascript):/i.test(u);
+
 export default function ArticleWebView() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ArticleWebViewRouteProp>();
@@ -61,15 +65,23 @@ export default function ArticleWebView() {
   }, []);
 
   const handleNavigationStateChange = useCallback((navState: WebViewNavigation) => {
-    setCurrentUrl(navState.url);
+    // Only update currentUrl if it's a valid HTTP URL
+    if (isHttpUrl(navState.url)) {
+      setCurrentUrl(navState.url);
+    }
     setCanGoBack(navState.canGoBack);
   }, []);
 
   const handleShouldStartLoadWithRequest = useCallback((request: any) => {
     const { url: requestUrl } = request;
     
+    // Block disallowed schemes
+    if (isDisallowedScheme(requestUrl)) {
+      return false;
+    }
+    
     // Only allow http/https schemes
-    if (!requestUrl.startsWith('http://') && !requestUrl.startsWith('https://')) {
+    if (!isHttpUrl(requestUrl)) {
       return false;
     }
     
@@ -97,6 +109,11 @@ export default function ArticleWebView() {
   }, []);
 
   const handleShare = useCallback(async () => {
+    // Only share if currentUrl is a valid HTTP URL
+    if (!isHttpUrl(currentUrl)) {
+      return; // No-op for invalid URLs
+    }
+
     try {
       await Share.share({
         message: `${title || 'Article'}\n\n${currentUrl}`,
@@ -109,6 +126,11 @@ export default function ArticleWebView() {
   }, [currentUrl, title]);
 
   const handleOpenInBrowser = useCallback(async () => {
+    // Only open in browser if currentUrl is a valid HTTP URL
+    if (!isHttpUrl(currentUrl)) {
+      return; // No-op for invalid URLs
+    }
+
     try {
       await Linking.openURL(currentUrl);
     } catch (error) {
@@ -122,6 +144,9 @@ export default function ArticleWebView() {
       webViewRef.current.reload();
     }
   }, []);
+
+  // Check if current URL is valid for actions
+  const isCurrentUrlValid = isHttpUrl(currentUrl);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -141,11 +166,23 @@ export default function ArticleWebView() {
           <TouchableOpacity onPress={handleReload} style={styles.headerButton}>
             <Text style={styles.headerButtonText}>↻</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleShare} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>📤</Text>
+          <TouchableOpacity 
+            onPress={handleShare} 
+            style={[styles.headerButton, !isCurrentUrlValid && styles.disabledButton]}
+            disabled={!isCurrentUrlValid}
+          >
+            <Text style={[styles.headerButtonText, !isCurrentUrlValid && styles.disabledButtonText]}>
+              📤
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleOpenInBrowser} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>🌐</Text>
+          <TouchableOpacity 
+            onPress={handleOpenInBrowser} 
+            style={[styles.headerButton, !isCurrentUrlValid && styles.disabledButton]}
+            disabled={!isCurrentUrlValid}
+          >
+            <Text style={[styles.headerButtonText, !isCurrentUrlValid && styles.disabledButtonText]}>
+              🌐
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -174,8 +211,14 @@ export default function ArticleWebView() {
             <TouchableOpacity onPress={handleRetry} style={styles.errorButton}>
               <Text style={styles.errorButtonText}>Retry</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleOpenInBrowser} style={styles.errorButton}>
-              <Text style={styles.errorButtonText}>Open in Browser</Text>
+            <TouchableOpacity 
+              onPress={handleOpenInBrowser} 
+              style={[styles.errorButton, !isCurrentUrlValid && styles.disabledErrorButton]}
+              disabled={!isCurrentUrlValid}
+            >
+              <Text style={[styles.errorButtonText, !isCurrentUrlValid && styles.disabledErrorButtonText]}>
+                Open in Browser
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -196,6 +239,8 @@ export default function ArticleWebView() {
         javaScriptEnabled={true}
         domStorageEnabled={true}
         allowsBackForwardNavigationGestures={true}
+        originWhitelist={['https://*', 'http://*']}
+        setSupportMultipleWindows={false}
       />
 
       {/* Source Pill */}
@@ -232,6 +277,12 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  disabledButtonText: {
+    color: '#666',
   },
   headerTitle: {
     flex: 1,
@@ -309,6 +360,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  disabledErrorButton: {
+    backgroundColor: '#666',
+  },
+  disabledErrorButtonText: {
+    color: '#999',
   },
   webview: {
     flex: 1,
